@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 main() {
   runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
     home: MyApp(),
   ));
 }
@@ -21,7 +22,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final picker = ImagePicker();
   final pdf = pw.Document();
-  File _image;
+  List<File> _image = [];
 
   @override
   Widget build(BuildContext context) {
@@ -42,14 +43,17 @@ class _MyAppState extends State<MyApp> {
         onPressed: getImageFromGallery,
       ),
       body: _image != null
-          ? Container(
-              height: 400,
-              width: double.infinity,
-              margin: EdgeInsets.all(8),
-              child: Image.file(
-                _image,
-                fit: BoxFit.cover,
-              ))
+          ? ListView.builder(
+              itemCount: _image.length,
+              itemBuilder: (context, index) => Container(
+                  height: 400,
+                  width: double.infinity,
+                  margin: EdgeInsets.all(8),
+                  child: Image.file(
+                    _image[index],
+                    fit: BoxFit.cover,
+                  )),
+            )
           : Container(),
     );
   }
@@ -58,7 +62,7 @@ class _MyAppState extends State<MyApp> {
     final pickedFile = await picker.getImage(source: ImageSource.gallery);
     setState(() {
       if (pickedFile != null) {
-        _image = File(pickedFile.path);
+        _image.add(File(pickedFile.path));
       } else {
         print('No image selected');
       }
@@ -66,13 +70,15 @@ class _MyAppState extends State<MyApp> {
   }
 
   createPDF() async {
-    final image = pw.MemoryImage(_image.readAsBytesSync());
+    for (var img in _image) {
+      final image = pw.MemoryImage(img.readAsBytesSync());
 
-    pdf.addPage(pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context contex) {
-          return pw.Center(child: pw.Image(image));
-        }));
+      pdf.addPage(pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context contex) {
+            return pw.Center(child: pw.Image(image));
+          }));
+    }
   }
 
   savePDF() async {
